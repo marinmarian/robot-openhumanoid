@@ -8,7 +8,7 @@
 #
 # Prerequisites — run setup.sh once first.
 
-set -euo pipefail
+set -eo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
@@ -16,16 +16,10 @@ BRIDGE_PORT="${BRIDGE_PORT:-8765}"
 BRIDGE_WITH_HANDS="${BRIDGE_WITH_HANDS:-0}"
 INTERFACE="${1:-real}"
 WBC_DIR="${WBC_DIR:-$HOME/GR00T-WholeBodyControl}"
-WBC_VENV="${WBC_VENV:-$HOME/wbc_venv}"
+CONDA_ENV="${CONDA_ENV:-wbc}"
 
 if [ ! -d "$WBC_DIR" ]; then
     echo "ERROR: GR00T-WholeBodyControl not found at $WBC_DIR"
-    echo "Run ./scripts/setup.sh first, or set WBC_DIR."
-    exit 1
-fi
-
-if [ ! -d "$WBC_VENV" ]; then
-    echo "ERROR: WBC virtualenv not found at $WBC_VENV"
     echo "Run ./scripts/setup.sh first."
     exit 1
 fi
@@ -51,31 +45,14 @@ echo "WBC:     $WBC_DIR"
 echo "Listen:  0.0.0.0:$BRIDGE_PORT"
 echo ""
 
-# Source whichever ROS2 distro is installed (Humble, Foxy, etc.)
-ROS2_SETUP=""
-for distro in jazzy humble galactic foxy; do
-    if [ -f "/opt/ros/$distro/setup.bash" ]; then
-        ROS2_SETUP="/opt/ros/$distro/setup.bash"
-        break
-    fi
-done
-if [ -z "$ROS2_SETUP" ]; then
-    echo "ERROR: No ROS2 installation found in /opt/ros/."
-    echo "Run ./scripts/setup.sh first."
-    exit 1
-fi
-echo "ROS2:    $ROS2_SETUP"
+# Activate the conda env (Python 3.10 + ROS2 Humble + WBC deps)
+eval "$(conda shell.bash hook)"
+conda activate "$CONDA_ENV"
 
-# Deactivate conda if active — its Python won't work with ROS2's C extensions.
-if [ -n "${CONDA_DEFAULT_ENV:-}" ]; then
-    echo "Deactivating conda ($CONDA_DEFAULT_ENV) to use system Python..."
-    eval "$(conda shell.bash deactivate 2>/dev/null)" || { export PATH="${PATH//$CONDA_PREFIX\/bin:/}"; unset CONDA_DEFAULT_ENV CONDA_PREFIX; }
-fi
-
-set +u
-source "$ROS2_SETUP"
-source "$WBC_VENV/bin/activate"
-set -u
 export PYTHONPATH="${WBC_DIR}:${PYTHONPATH:-}"
+
+echo "Python:  $(python3 --version) ($(which python3))"
+echo "Conda:   $CONDA_ENV"
+echo ""
 
 exec python3 "$PROJECT_DIR/bridge/run_with_bridge.py" --port "$BRIDGE_PORT" $LOOP_ARGS

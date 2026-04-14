@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 """
 HTTP bridge server + G1 WBC control loop in a single process.
 

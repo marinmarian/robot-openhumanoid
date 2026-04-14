@@ -15,7 +15,7 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 BRIDGE_PORT="${BRIDGE_PORT:-8765}"
 BRIDGE_WITH_HANDS="${BRIDGE_WITH_HANDS:-0}"
 INTERFACE="${1:-real}"
-WBC_DIR="${WBC_DIR:-$HOME/GR00T-WholeBodyControl/decoupled_wbc}"
+WBC_DIR="${WBC_DIR:-$HOME/GR00T-WholeBodyControl}"
 WBC_VENV="${WBC_VENV:-$HOME/wbc_venv}"
 
 if [ ! -d "$WBC_DIR" ]; then
@@ -76,6 +76,6 @@ set +u
 source "$ROS2_SETUP"
 source "$WBC_VENV/bin/activate"
 set -u
-export PYTHONPATH="${WBC_DIR}/src:${PYTHONPATH:-}"
+export PYTHONPATH="${WBC_DIR}:${PYTHONPATH:-}"
 
 exec python3 "$PROJECT_DIR/bridge/run_with_bridge.py" --port "$BRIDGE_PORT" $LOOP_ARGS

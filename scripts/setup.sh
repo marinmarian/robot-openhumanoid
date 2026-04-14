@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # One-time setup for the Jetson Orin NX.
 #
-# Installs ROS2 Humble, clones GR00T-WholeBodyControl, creates a Python venv.
-# Run once after flashing the Jetson.
+# Detects or installs a compatible ROS2 distro, clones GR00T-WholeBodyControl,
+# and creates a Python venv with WBC dependencies.
 #
 # Usage:
 #   bash scripts/setup.sh
@@ -17,20 +17,54 @@ echo "WBC:   $WBC_DIR"
 echo "Venv:  $WBC_VENV"
 echo ""
 
-# --- ROS2 Humble ---
-if [ -f /opt/ros/humble/setup.bash ]; then
-    echo "[1/3] ROS2 Humble already installed."
+# --- Detect or install ROS2 ---
+find_ros2_setup() {
+    # Return the first ROS2 setup.bash found (prefer newer distros)
+    for distro in jazzy humble galactic foxy; do
+        if [ -f "/opt/ros/$distro/setup.bash" ]; then
+            echo "/opt/ros/$distro/setup.bash"
+            return 0
+        fi
+    done
+    return 1
+}
+
+ROS2_SETUP=""
+if ROS2_SETUP="$(find_ros2_setup)"; then
+    DISTRO_NAME="$(basename "$(dirname "$ROS2_SETUP")")"
+    echo "[1/3] ROS2 already installed: $DISTRO_NAME ($ROS2_SETUP)"
 else
-    echo "[1/3] Installing ROS2 Humble..."
+    UBUNTU_CODENAME="$(. /etc/os-release && echo "$UBUNTU_CODENAME")"
+    echo "[1/3] No ROS2 found. Detected Ubuntu $UBUNTU_CODENAME."
+
+    # Pick the right ROS2 distro for this Ubuntu version
+    case "$UBUNTU_CODENAME" in
+        jammy)  ROS2_DISTRO="humble" ;;
+        focal)  ROS2_DISTRO="foxy" ;;
+        noble)  ROS2_DISTRO="jazzy" ;;
+        *)
+            echo "ERROR: No pre-built ROS2 packages for Ubuntu $UBUNTU_CODENAME."
+            echo "Install ROS2 manually, then re-run this script."
+            exit 1
+            ;;
+    esac
+
+    echo "Installing ROS2 $ROS2_DISTRO for Ubuntu $UBUNTU_CODENAME..."
     sudo apt-get update && sudo apt-get install -y software-properties-common curl
     sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key \
         -o /usr/share/keyrings/ros-archive-keyring.gpg
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] \
-        http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" \
+        http://packages.ros.org/ros2/ubuntu $UBUNTU_CODENAME main" \
         | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
     sudo apt-get update
-    sudo apt-get install -y ros-humble-ros-base python3-colcon-common-extensions
-    echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+    sudo apt-get install -y "ros-${ROS2_DISTRO}-ros-base" python3-colcon-common-extensions
+
+    ROS2_SETUP="/opt/ros/$ROS2_DISTRO/setup.bash"
+
+    if ! grep -q "source $ROS2_SETUP" ~/.bashrc 2>/dev/null; then
+        echo "source $ROS2_SETUP" >> ~/.bashrc
+    fi
+    echo "ROS2 $ROS2_DISTRO installed."
 fi
 
 # --- GR00T-WholeBodyControl ---

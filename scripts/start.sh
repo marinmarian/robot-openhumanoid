@@ -51,7 +51,22 @@ echo "WBC:     $WBC_DIR"
 echo "Listen:  0.0.0.0:$BRIDGE_PORT"
 echo ""
 
-source /opt/ros/humble/setup.bash
+# Source whichever ROS2 distro is installed (Humble, Foxy, etc.)
+ROS2_SETUP=""
+for distro in jazzy humble galactic foxy; do
+    if [ -f "/opt/ros/$distro/setup.bash" ]; then
+        ROS2_SETUP="/opt/ros/$distro/setup.bash"
+        break
+    fi
+done
+if [ -z "$ROS2_SETUP" ]; then
+    echo "ERROR: No ROS2 installation found in /opt/ros/."
+    echo "Run ./scripts/setup.sh first."
+    exit 1
+fi
+echo "ROS2:    $ROS2_SETUP"
+
+source "$ROS2_SETUP"
 source "$WBC_VENV/bin/activate"
 export PYTHONPATH="${WBC_DIR}/src:${PYTHONPATH:-}"
 

@@ -82,7 +82,16 @@ if [ -d "$WBC_VENV" ]; then
     echo "[3/3] Virtualenv already exists."
 else
     echo "[3/3] Creating virtualenv and installing WBC dependencies..."
-    python3 -m venv "$WBC_VENV"
+
+    # Use system Python (matches ROS2), not conda.
+    SYS_PYTHON="/usr/bin/python3"
+    if [ ! -x "$SYS_PYTHON" ]; then
+        SYS_PYTHON="$(which python3)"
+        echo "WARNING: /usr/bin/python3 not found, using $SYS_PYTHON"
+    fi
+    echo "Using Python: $SYS_PYTHON ($($SYS_PYTHON --version 2>&1))"
+
+    "$SYS_PYTHON" -m venv "$WBC_VENV"
     source "$WBC_VENV/bin/activate"
 
     pip install --upgrade pip

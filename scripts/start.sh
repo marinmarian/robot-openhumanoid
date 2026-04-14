@@ -66,6 +66,12 @@ if [ -z "$ROS2_SETUP" ]; then
 fi
 echo "ROS2:    $ROS2_SETUP"
 
+# Deactivate conda if active — its Python won't work with ROS2's C extensions.
+if [ -n "${CONDA_DEFAULT_ENV:-}" ]; then
+    echo "Deactivating conda ($CONDA_DEFAULT_ENV) to use system Python..."
+    eval "$(conda shell.bash deactivate 2>/dev/null)" || { export PATH="${PATH//$CONDA_PREFIX\/bin:/}"; unset CONDA_DEFAULT_ENV CONDA_PREFIX; }
+fi
+
 set +u
 source "$ROS2_SETUP"
 source "$WBC_VENV/bin/activate"

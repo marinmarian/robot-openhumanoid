@@ -348,10 +348,12 @@ def _read_body(handler: BaseHTTPRequestHandler) -> dict:
 
 
 def _respond(handler: BaseHTTPRequestHandler, code: int, body: dict):
+    payload = json.dumps(body).encode()
     handler.send_response(code)
     handler.send_header("Content-Type", "application/json")
+    handler.send_header("Content-Length", str(len(payload)))
     handler.end_headers()
-    handler.wfile.write(json.dumps(body).encode())
+    handler.wfile.write(payload)
 
 
 class BridgeHandler(BaseHTTPRequestHandler):

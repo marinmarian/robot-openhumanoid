@@ -66,8 +66,10 @@ if [ -z "$ROS2_SETUP" ]; then
 fi
 echo "ROS2:    $ROS2_SETUP"
 
+set +u
 source "$ROS2_SETUP"
 source "$WBC_VENV/bin/activate"
+set -u
 export PYTHONPATH="${WBC_DIR}/src:${PYTHONPATH:-}"
 
 exec python3 "$PROJECT_DIR/bridge/run_with_bridge.py" --port "$BRIDGE_PORT" $LOOP_ARGS

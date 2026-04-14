@@ -348,12 +348,29 @@ def _read_body(handler: BaseHTTPRequestHandler) -> dict:
 
 
 def _respond(handler: BaseHTTPRequestHandler, code: int, body: dict):
-    payload = json.dumps(body).encode()
+    try:
+        payload = json.dumps(body, default=_json_default).encode()
+    except Exception as exc:
+        payload = json.dumps({"error": f"serialization: {exc}"}).encode()
+        code = 500
     handler.send_response(code)
     handler.send_header("Content-Type", "application/json")
     handler.send_header("Content-Length", str(len(payload)))
     handler.end_headers()
     handler.wfile.write(payload)
+
+
+def _json_default(obj):
+    """Make numpy scalars / arrays JSON-serializable."""
+    try:
+        import numpy as np
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        if isinstance(obj, (np.integer, np.floating)):
+            return obj.item()
+    except ImportError:
+        pass
+    raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
 
 class BridgeHandler(BaseHTTPRequestHandler):
@@ -472,7 +489,11 @@ class BridgeHandler(BaseHTTPRequestHandler):
             _respond(self, 404, {"error": f"Unknown endpoint: {self.path}"})
 
     def log_message(self, format, *args):
+        # Suppress routine access logs but let Python's default error handling through
         pass
+
+    def log_error(self, format, *args):
+        print(f"[BRIDGE] HTTP error: {format % args}", flush=True)
 
 
 def start_bridge_server(port: int):

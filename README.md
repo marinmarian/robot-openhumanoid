@@ -24,7 +24,6 @@ Laptop (WiFi)                         Robot (Jetson Orin NX)
 SSH into the robot and clone this repo:
 
 ```bash
-ssh unitree@192.168.123.164    # password: 123
 git clone <this-repo-url> ~/robot-openhumanoid
 cd ~/robot-openhumanoid
 bash scripts/setup.sh
